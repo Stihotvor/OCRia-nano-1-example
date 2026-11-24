@@ -1,16 +1,22 @@
 [project]
 name = "ocria-nano-1-example"
 version = "0.1.0"
-description = "Add your description here"
+description = "FastAPI OCR service using LlamaIndex OCRia-nano-1 via LiteParse"
 readme = "README.md"
 authors = [
     { name = "yevhend", email = "22343775+Stihotvor@users.noreply.github.com" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "python-multipart>=0.0.20",
+    "liteparse>=2.21.1",
+]
 
 [project.scripts]
 ocria-nano-1-example = "ocria_nano_1_example:main"
+ocria-api = "ocria_nano_1_example.app:main"
 
 [build-system]
 requires = ["uv_build>=0.12.0,<0.13.0"]
