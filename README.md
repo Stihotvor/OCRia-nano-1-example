@@ -29,7 +29,7 @@
 Requires Python 3.14+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-git clone https://github.com/<your-username>/ocria-nano-1-example.git
+git clone https://github.com/Stihotvor/OCRia-nano-1-example.git
 cd ocria-nano-1-example
 uv sync
 uv run ocria-api
