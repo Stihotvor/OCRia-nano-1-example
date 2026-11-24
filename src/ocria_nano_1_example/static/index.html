@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCRia nano-1 · Document OCR</title>
+<style>
+  :root {
+    --bg: #080d1c;
+    --panel: #111a2e;
+    --panel-2: #16213a;
+    --border: rgba(148, 163, 184, .16);
+    --text: #e8edf7;
+    --muted: #93a3bd;
+    --accent: #8b5cf6;
+    --accent-2: #22d3ee;
+    --danger: #fb7185;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--text);
+    background:
+      radial-gradient(900px 500px at 12% -8%, rgba(139, 92, 246, .20), transparent 60%),
+      radial-gradient(800px 500px at 90% 0%, rgba(34, 211, 238, .12), transparent 60%),
+      var(--bg);
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .app { width: min(1100px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 64px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+  .brand .mark {
+    width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 6px 24px rgba(139, 92, 246, .35); font-size: 20px;
+  }
+  .brand small { color: var(--accent-2); font-weight: 600; font-size: 13px; margin-left: 4px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    font-size: 12px; color: var(--muted); padding: 5px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: rgba(255,255,255,.03);
+  }
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,.035), transparent), var(--panel);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; margin-bottom: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.25);
+  }
+  h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -.01em; }
+  .subtitle { margin: 0 0 20px; color: var(--muted); font-size: 14px; }
+  .dropzone {
+    border: 1.5px dashed rgba(139, 92, 246, .55); border-radius: 14px;
+    min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; cursor: pointer; text-align: center; padding: 24px;
+    background: rgba(139, 92, 246, .05); transition: .18s ease; outline: none;
+  }
+  .dropzone:hover, .dropzone:focus-visible, .dropzone.drag {
+    border-color: var(--accent-2); background: rgba(34, 211, 238, .09); transform: translateY(-1px);
+  }
+  .drop-icon { font-size: 34px; line-height: 1; margin-bottom: 4px; }
+  .dropzone strong { font-size: 16px; }
+  .dropzone span { color: var(--muted); font-size: 13px; }
+  .link-text { color: var(--accent-2); text-decoration: underline; text-underline-offset: 3px; }
+  .file-info {
+    margin-top: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+    border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); font-size: 14px;
+  }
+  .file-info .dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 12px #34d399; }
+  .file-info .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-info .size { color: var(--muted); margin-left: auto; white-space: nowrap; }
+  .controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
+  button, select, input[type=checkbox] { font: inherit; }
+  .primary {
+    background: linear-gradient(135deg, var(--accent), #6d4fe0); color: white; border: 0;
+    border-radius: 12px; padding: 12px 22px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 8px 22px rgba(139,92,246,.32); transition: .15s ease;
+  }
+  .primary:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+  .primary:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+  .ghost {
+    background: rgba(255,255,255,.05); color: var(--text); border: 1px solid var(--border);
+    border-radius: 9px; padding: 7px 12px; cursor: pointer; font-size: 13px;
+  }
+  .ghost:hover:not(:disabled) { background: rgba(255,255,255,.1); }
+  .ghost:disabled { opacity: .4; cursor: not-allowed; }
+  .field { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+  select {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 9px; padding: 8px 10px;
+  }
+  .hint { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .status { margin-top: 14px; font-size: 13px; color: var(--muted); min-height: 20px; }
+  .status.error { color: var(--danger); }
+  .tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .tab {
+    background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted);
+    padding: 10px 16px; cursor: pointer; font-weight: 600; font-size: 14px;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent-2); }
+  .pill {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent-2);
+    border: 1px solid rgba(34,211,238,.35); border-radius: 999px; padding: 2px 6px; margin-left: 6px;
+  }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .toolbar .meta { color: var(--muted); font-size: 12px; margin-right: auto; }
+  .output {
+    margin: 0; padding: 20px; min-height: 260px; max-height: 620px; overflow: auto;
+    white-space: pre-wrap; word-break: break-word; border-radius: 12px;
+    background: #0a1122; border: 1px solid var(--border); color: #dbe6f7;
+    font: 13px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .empty { color: var(--muted); padding: 60px 20px; text-align: center; border: 1px dashed var(--border); border-radius: 12px; }
+  .pages { display: grid; gap: 22px; max-height: 680px; overflow: auto; padding-right: 6px; }
+  .page { background: #0a1122; border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .page-head { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  .page-canvas { position: relative; width: 100%; margin: 0 auto; background: white; overflow: hidden; border-radius: 4px; }
+  .page-canvas img { display: block; width: 100%; height: 100%; }
+  .overlay { position: absolute; inset: 0; pointer-events: none; }
+  .rect {
+    position: absolute; border: 2px solid currentColor; border-radius: 3px;
+    background: rgba(255,255,255,.03); pointer-events: auto;
+  }
+  .rect:hover { background: rgba(255,255,255,.16); }
+  .kind-heading { color: #a78bfa; }
+  .kind-paragraph { color: #38bdf8; }
+  .kind-list, .kind-listitem { color: #34d399; }
+  .kind-table { color: #fbbf24; }
+  .kind-code { color: #f472b6; }
+  .kind-figure, .kind-image { color: #fb7185; }
+  .kind-default { color: #94a3b8; }
+  .line-box { border-width: 1px; border-style: dashed; color: rgba(34,211,238,.85); }
+  [hidden] { display: none !important; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; border: 2px solid currentColor; }
+  @media (max-width: 640px) {
+    .app { width: calc(100% - 20px); padding-top: 20px; }
+    .card { padding: 16px; }
+    .hint { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><span class="mark">◎</span><span>OCRia <small>nano-1</small></span></div>
+    <div class="chips">
+      <span class="chip">8.1M params · ONNX</span>
+      <span class="chip">Runs locally on CPU</span>
+      <span class="chip">Multilingual</span>
+    </div>
+  </header>
+
+  <section class="card">
+    <h1>Document OCR</h1>
+    <p class="subtitle">Drop a PDF, scan, or image. Text, tables and layout are extracted on this machine.</p>
+
+    <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Choose a file or drag and drop it here">
+      <input id="fileInput" type="file" hidden accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.webp,.docx,.pptx,.xlsx">
+      <div class="drop-icon">⇪</div>
+      <strong>Drag &amp; drop your file here</strong>
+      <span>or <span class="link-text">browse files</span> · PDF, images, Office · max 50 MB</span>
+    </div>
+
+    <div id="fileInfo" class="file-info" hidden>
+      <span class="dot"></span><span id="fileName" class="name"></span><span id="fileSize" class="size"></span>
+    </div>
+
+    <div class="controls">
+      <button id="ocrBtn" class="primary" disabled>OCR it! &nbsp;→</button>
+      <label class="field">Output
+        <select id="format">
+          <option value="markdown">Markdown</option>
+          <option value="text">Plain text</option>
+          <option value="json">JSON with boxes</option>
+        </select>
+      </label>
+      <span class="hint">Layout overlays are always collected for the Layout tab.</span>
+    </div>
+    <div id="status" class="status">Waiting for a file.</div>
+  </section>
+
+  <section class="card">
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="text" role="tab">Recognized text</button>
+      <button class="tab" data-tab="layout" role="tab">Layout <span class="pill">boxes</span></button>
+    </div>
+
+    <div id="textPanel" class="panel active" role="tabpanel">
+      <div class="toolbar">
+        <span id="meta" class="meta">No document parsed yet.</span>
+        <button id="copyBtn" class="ghost" disabled>Copy</button>
+        <button id="downloadBtn" class="ghost" disabled>Download .txt</button>
+      </div>
+      <pre id="output" class="output">Your recognized text will appear here.</pre>
+    </div>
+
+    <div id="layoutPanel" class="panel" role="tabpanel">
+      <div class="toolbar">
+        <label class="field"><input id="blocksToggle" type="checkbox" checked> Layout blocks</label>
+        <label class="field"><input id="linesToggle" type="checkbox"> Text lines</label>
+        <span id="layoutMeta" class="meta"></span>
+      </div>
+      <div id="pages" class="pages"><div class="empty">Parse a document to see page previews with OCR boxes.</div></div>
+      <div class="legend">
+        <span class="kind-heading"><i class="swatch"></i>heading</span>
+        <span class="kind-paragraph"><i class="swatch"></i>paragraph</span>
+        <span class="kind-list"><i class="swatch"></i>list</span>
+        <span class="kind-table"><i class="swatch"></i>table</span>
+        <span class="kind-code"><i class="swatch"></i>code</span>
+        <span class="kind-figure"><i class="swatch"></i>figure</span>
+        <span class="line-box"><i class="swatch"></i>text line</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const ALLOWED = ['pdf','png','jpg','jpeg','tif','tiff','bmp','webp','docx','pptx','xlsx'];
+  const MAX_BYTES = 50 * 1024 * 1024;
+  const $ = id => document.getElementById(id);
+  const dropzone = $('dropzone'), fileInput = $('fileInput'), ocrBtn = $('ocrBtn');
+  const statusEl = $('status'), output = $('output'), pagesEl = $('pages');
+  let selectedFile = null;
+
+  const setStatus = (message, isError = false) => {
+    statusEl.textContent = message;
+    statusEl.classList.toggle('error', isError);
+  };
+  const formatSize = bytes => bytes < 1024 * 1024
+    ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
+  function chooseFile(file) {
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!ALLOWED.includes(ext)) { setStatus(`Unsupported file type ".${ext}".`, true); return; }
+    if (file.size > MAX_BYTES) { setStatus('File is larger than 50 MB.', true); return; }
+    selectedFile = file;
+    $('fileName').textContent = file.name;
+    $('fileSize').textContent = formatSize(file.size);
+    $('fileInfo').hidden = false;
+    ocrBtn.disabled = false;
+    clearResults();
+    setStatus(`Ready: ${file.name} (${formatSize(file.size)}). Press "OCR it!".`);
+  }
+
+  function clearResults() {
+    output.textContent = 'Your recognized text will appear here.';
+    $('meta').textContent = 'No document parsed yet.';
+    $('layoutMeta').textContent = '';
+    pagesEl.replaceChildren();
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'Parse a document to see page previews with OCR boxes.';
+    pagesEl.appendChild(empty);
+    $('copyBtn').disabled = true;
+    $('downloadBtn').disabled = true;
+  }
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+  fileInput.addEventListener('change', () => chooseFile(fileInput.files[0]));
+  ['dragenter', 'dragover'].forEach(type => document.addEventListener(type, e => {
+    e.preventDefault(); dropzone.classList.add('drag');
+  }));
+  ['dragleave', 'dragend'].forEach(type => document.addEventListener(type, e => {
+    e.preventDefault(); dropzone.classList.remove('drag');
+  }));
+  document.addEventListener('drop', e => {
+    e.preventDefault(); dropzone.classList.remove('drag');
+    chooseFile(e.dataTransfer && e.dataTransfer.files[0]);
+  });
+
+  function makeBox(bbox, page, className, title) {
+    const [x, y, w, h] = bbox;
+    const el = document.createElement('div');
+    el.className = `rect ${className}`;
+    el.style.left = `${x / page.width * 100}%`;
+    el.style.top = `${y / page.height * 100}%`;
+    el.style.width = `${w / page.width * 100}%`;
+    el.style.height = `${h / page.height * 100}%`;
+    el.title = title;
+    return el;
+  }
+
+  function renderPages(pages) {
+    pagesEl.replaceChildren();
+    if (!pages || !pages.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'No page preview was returned for this document.';
+      pagesEl.appendChild(empty);
+      return;
+    }
+    for (const page of pages) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'page';
+      const head = document.createElement('div');
+      head.className = 'page-head';
+      head.textContent = `Page ${page.page_num} · ${page.width} × ${page.height} pt`;
+      const canvas = document.createElement('div');
+      canvas.className = 'page-canvas';
+      canvas.style.aspectRatio = `${page.width} / ${page.height}`;
+      if (page.image) {
+        const img = document.createElement('img');
+        img.src = page.image;
+        img.alt = `Rendered page ${page.page_num}`;
+        canvas.appendChild(img);
+      }
+      const overlay = document.createElement('div');
+      overlay.className = 'overlay';
+      for (const block of page.blocks || []) {
+        const kind = ['heading','paragraph','list','listitem','table','code','figure','image'].includes(block.kind)
+          ? block.kind : 'default';
+        overlay.appendChild(makeBox(block.bbox, page, `kind-${kind} block-box`, `${block.kind}: ${block.text}`));
+      }
+      for (const item of page.items || []) {
+        const confidence = item.confidence == null ? '' : ` · ${(item.confidence * 100).toFixed(0)}%`;
+        overlay.appendChild(makeBox(item.bbox, page, 'line-box', `${item.text}${confidence}`));
+      }
+      canvas.appendChild(overlay);
+      wrapper.append(head, canvas);
+      pagesEl.appendChild(wrapper);
+    }
+    applyOverlayToggles();
+    $('layoutMeta').textContent = `${pages.length} page${pages.length === 1 ? '' : 's'} · `
+      + `${pages.reduce((n, p) => n + (p.blocks || []).length, 0)} blocks`;
+  }
+
+  function applyOverlayToggles() {
+    document.querySelectorAll('.block-box').forEach(el => { el.hidden = !$('blocksToggle').checked; });
+    document.querySelectorAll('.line-box').forEach(el => { el.hidden = !$('linesToggle').checked; });
+  }
+  $('blocksToggle').addEventListener('change', applyOverlayToggles);
+  $('linesToggle').addEventListener('change', applyOverlayToggles);
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    $('textPanel').classList.toggle('active', name === 'text');
+    $('layoutPanel').classList.toggle('active', name === 'layout');
+  }
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+  $('copyBtn').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(output.textContent); setStatus('Text copied to clipboard.'); }
+    catch { setStatus('Copy failed; select the text manually.', true); }
+  });
+  $('downloadBtn').addEventListener('click', () => {
+    const blob = new Blob([output.textContent], {type: 'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(selectedFile ? selectedFile.name : 'ocr').replace(/\.[^.]+$/, '')}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  ocrBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+    ocrBtn.disabled = true;
+    setStatus('Parsing with OCRia-nano-1…');
+    const params = new URLSearchParams({
+      output_format: $('format').value,
+      extract_blocks: 'true',
+      visual: 'true'
+    });
+    const body = new FormData();
+    body.append('file', selectedFile, selectedFile.name);
+    try {
+      const response = await fetch(`/ocr?${params}`, {method: 'POST', body});
+      const data = await response.json();
+      if (!response.ok) throw new Error(JSON.stringify(data.detail || response.statusText));
+      output.textContent = data.text || '(no text recognized)';
+      $('meta').textContent = `${data.filename} · ${data.format} · ${data.text.length.toLocaleString()} chars`;
+      $('copyBtn').disabled = false;
+      $('downloadBtn').disabled = false;
+      renderPages(data.pages);
+      switchTab('text');
+      setStatus(`Done — ${data.text.length.toLocaleString()} characters extracted.`);
+    } catch (error) {
+      setStatus(`OCR failed: ${error.message}`, true);
+    } finally {
+      ocrBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

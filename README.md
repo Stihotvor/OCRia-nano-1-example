@@ -28,6 +28,13 @@ OCRIA_AUTO_PULL=0 uv run uvicorn ocria_nano_1_example.app:app --port 8055
 Alternatively, run `uv run ocria-api`, which listens on port 8055 by default. Set
 `PORT` to use a different port with that command.
 
+## Web UI
+
+Open <http://localhost:8055> in a browser. The page supports click-to-upload and
+drag-and-drop, an "OCR it!" button, a recognized-text panel with copy/download, and a
+Layout tab that draws the model's layout-block and text-line boxes over each page image.
+Box layers can be toggled and are color-coded by block kind.
+
 ## Endpoints
 
 - `GET /health` — service status and whether the models are ready.
@@ -39,6 +46,7 @@ Query parameters for `POST /ocr`:
 | --- | --- | --- |
 | `output_format` | `markdown`, `text`, `json` | `markdown` |
 | `extract_blocks` | `true`, `false` | `false` |
+| `visual` | `true`, `false` | `false` |
 
 ## Example
 
@@ -55,6 +63,9 @@ curl -X POST "http://localhost:8055/ocr?output_format=json&extract_blocks=true" 
 ```
 
 The response contains `filename`, `format`, `text` and, when requested, `blocks`.
+With `visual=true` it also contains `pages`: each page has `page_num`, `width`, `height`,
+a base64 PNG `image`, layout `blocks` with `kind` and `[x, y, width, height]` boxes, and
+per-line `items` with confidence. The web UI uses this data for its overlay.
 
 ## License note
 

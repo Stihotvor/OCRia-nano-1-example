@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -10,6 +11,8 @@ from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from liteparse import LiteParse, models
 
 log = logging.getLogger("ocria.api")
@@ -41,6 +44,15 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="OCRia-nano-1 OCR API", version="0.1.0", lifespan=lifespan)
 
+STATIC_DIR = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+async def index() -> FileResponse:
+    """Serve the browser UI."""
+    return FileResponse(STATIC_DIR / "index.html")
+
 
 def _jsonable(value: Any) -> Any:
     """Convert LiteParse result objects into JSON-serializable values."""
@@ -59,6 +71,47 @@ def _jsonable(value: Any) -> Any:
     return str(value)
 
 
+def _visual_pages(result: Any) -> list[dict[str, Any]]:
+    """Build page previews with OCR boxes for the browser overlay."""
+    screenshots = {shot.page_num: shot for shot in (getattr(result, "screenshots", []) or [])}
+    pages: list[dict[str, Any]] = []
+    for page in getattr(result, "pages", []) or []:
+        shot = screenshots.get(page.page_num)
+        image = None
+        if shot is not None and getattr(shot, "image_bytes", None):
+            encoded = base64.b64encode(shot.image_bytes).decode("ascii")
+            image = f"data:image/png;base64,{encoded}"
+
+        blocks = []
+        for block in getattr(page, "blocks", []) or []:
+            bbox = getattr(block, "bbox", None)
+            if bbox is None:
+                continue
+            blocks.append({
+                "kind": getattr(block, "kind", "text"),
+                "text": getattr(block, "text", ""),
+                "bbox": [bbox.x, bbox.y, bbox.width, bbox.height],
+            })
+
+        items = []
+        for item in getattr(page, "text_items", []) or []:
+            items.append({
+                "text": getattr(item, "text", ""),
+                "bbox": [item.x, item.y, item.width, item.height],
+                "confidence": getattr(item, "confidence", None),
+            })
+
+        pages.append({
+            "page_num": page.page_num,
+            "width": page.width,
+            "height": page.height,
+            "image": image,
+            "blocks": blocks,
+            "items": items[:5000],
+        })
+    return pages
+
+
 @app.get("/health")
 async def health() -> dict[str, Any]:
     """Report service and model status."""
@@ -75,6 +128,7 @@ async def ocr(
     file: UploadFile = File(...),
     output_format: Literal["markdown", "text", "json"] = "markdown",
     extract_blocks: bool = False,
+    visual: bool = False,
 ) -> dict[str, Any]:
     """Parse an uploaded document with OCRia-nano-1."""
     if not _state["ready"]:
@@ -100,7 +154,8 @@ async def ocr(
         parser = LiteParse(
             ocr_backend="ocria-nano",
             output_format=output_format,
-            extract_blocks=extract_blocks,
+            extract_blocks=extract_blocks or visual,
+            extract_screenshots=visual,
             quiet=True,
         )
         result = await asyncio.to_thread(parser.parse, data)
@@ -113,12 +168,14 @@ async def ocr(
         "format": output_format,
         "text": result.text,
     }
-    if extract_blocks:
+    if extract_blocks or visual:
         response["blocks"] = [
             _jsonable(block)
             for page in getattr(result, "pages", [])
             for block in (getattr(page, "blocks", None) or [])
         ]
+    if visual:
+        response["pages"] = _visual_pages(result)
     return response
 
 
