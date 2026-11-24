@@ -1,0 +1,17 @@
+[project]
+name = "ocria-nano-1-example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "yevhend", email = "22343775+Stihotvor@users.noreply.github.com" }
+]
+requires-python = ">=3.14"
+dependencies = []
+
+[project.scripts]
+ocria-nano-1-example = "ocria_nano_1_example:main"
+
+[build-system]
+requires = ["uv_build>=0.12.0,<0.13.0"]
+build-backend = "uv_build"
