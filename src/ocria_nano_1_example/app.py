@@ -126,7 +126,7 @@ def main() -> None:
     """Run the service locally with uvicorn."""
     import uvicorn
 
-    uvicorn.run("ocria_nano_1_example.app:app", host="0.0.0.0", port=8000)
+    uvicorn.run("ocria_nano_1_example.app:app", host="0.0.0.0", port=int(os.getenv("PORT", "8055")))
 
 
 if __name__ == "__main__":

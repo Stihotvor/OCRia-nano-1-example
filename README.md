@@ -15,17 +15,18 @@ plain text or JSON with bounding boxes; tables and layout blocks can be returned
 
 ```bash
 uv sync
-uv run uvicorn ocria_nano_1_example.app:app --reload
+uv run uvicorn ocria_nano_1_example.app:app --port 8055 --reload
 ```
 
 On first startup LiteParse pulls the `ocria-nano` models (about 60-75 MB, cached on
 disk afterwards). To skip the automatic pull when the models are already present:
 
 ```bash
-OCRIA_AUTO_PULL=0 uv run uvicorn ocria_nano_1_example.app:app
+OCRIA_AUTO_PULL=0 uv run uvicorn ocria_nano_1_example.app:app --port 8055
 ```
 
-Alternatively, run `uv run ocria-api` (port 8000).
+Alternatively, run `uv run ocria-api`, which listens on port 8055 by default. Set
+`PORT` to use a different port with that command.
 
 ## Endpoints
 
@@ -42,14 +43,14 @@ Query parameters for `POST /ocr`:
 ## Example
 
 ```bash
-curl -X POST "http://localhost:8000/ocr?output_format=markdown" \
+curl -X POST "http://localhost:8055/ocr?output_format=markdown" \
   -F "file=@/path/to/scan.pdf"
 ```
 
 With layout blocks as JSON:
 
 ```bash
-curl -X POST "http://localhost:8000/ocr?output_format=json&extract_blocks=true" \
+curl -X POST "http://localhost:8055/ocr?output_format=json&extract_blocks=true" \
   -F "file=@/path/to/scan.pdf"
 ```
 
